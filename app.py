@@ -68,7 +68,7 @@ def get_note_file_path(note_id, jwt_token):
     Get the file path for a note from Spring Boot backend
     """
     try:
-        print(f"🔍 FLASK: Fetching file path for note ID: {note_id}")
+        print(f"FLASK: Fetching file path for note ID: {note_id}")
         
         # Call Spring Boot API to get note details
         headers = {
@@ -128,50 +128,50 @@ def initialize_model():
                 model.model.load_state_dict(state_dict)
                 model.model.to(device)
                 model.model.eval()
-                print("✅ Model weights loaded successfully")
+                print("Model weights loaded successfully")
             except Exception as e:
-                print(f"⚠️ Failed to load model weights: {e}")
-                print("🔄 Continuing with default weights")
+                print(f"Failed to load model weights: {e}")
+                print("Continuing with default weights")
         else:
-            print(f"⚠️ Model weights file not found at: {model_path}")
-            print("🔄 Using default model weights")
+            print(f"Model weights file not found at: {model_path}")
+            print("Using default model weights")
         
         # Try to load tokenizer
         tokenizer_path = "tokenizer"
         if os.path.exists(tokenizer_path):
-            print(f"📁 Loading tokenizer from: {tokenizer_path}")
+            print(f"Loading tokenizer from: {tokenizer_path}")
             try:
                 model.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, local_files_only=True)
-                print("✅ Custom tokenizer loaded")
+                print("Custom tokenizer loaded")
             except Exception as e:
-                print(f"⚠️ Failed to load custom tokenizer: {e}")
-                print("🔄 Using default tokenizer")
+                print(f"Failed to load custom tokenizer: {e}")
+                print("Using default tokenizer")
                 model.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
         else:
-            print("⚠️ Custom tokenizer not found, using default")
+            print("Custom tokenizer not found, using default")
             model.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
         
         # Initialize processor
         processor_path = "pdf_processor.pkl"
         if os.path.exists(processor_path):
-            print(f"📁 Loading processor from: {processor_path}")
+            print(f"Loading processor from: {processor_path}")
             try:
                 with open(processor_path, "rb") as f:
                     processor = pickle.load(f)
-                print("✅ Custom processor loaded")
+                print("Custom processor loaded")
             except Exception as e:
-                print(f"⚠️ Failed to load custom processor: {e}")
-                print("🔄 Creating default processor")
+                print(f"Failed to load custom processor: {e}")
+                print("Creating default processor")
                 processor = EducationalPDFProcessor()
         else:
-            print("⚠️ Custom processor not found, creating default")
+            print("Custom processor not found, creating default")
             processor = EducationalPDFProcessor()
         
-        print("🎉 Model initialization completed successfully!")
+        print("Model initialization completed successfully!")
         return True
         
     except Exception as e:
-        print(f"❌ Model initialization failed: {e}")
+        print(f"Model initialization failed: {e}")
         traceback.print_exc()
         return False
 
@@ -181,77 +181,77 @@ def process_pdf():
     Process a PDF by note_id only, get file path from Spring Boot backend.
     Expects: { "note_id": 123 }
     """
-    print("🚀 FLASK: Received processing request")
+    print("FLASK: Received processing request")
     
     try:
         # Check if model is loaded
         if model is None or processor is None:
             error_msg = "AI model not properly initialized"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 500
 
         # Parse request
         data = request.get_json()
         if not data:
             error_msg = "No JSON data received"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 400
             
-        print(f"📝 FLASK: Request data: {data}")
+        print(f"FLASK: Request data: {data}")
         
         note_id = data.get("note_id")
         if not note_id:
             error_msg = "note_id is required"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 400
 
         # Get JWT token from headers
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             error_msg = "Authorization header with Bearer token is required"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 401
             
         jwt_token = auth_header[7:]  # Remove 'Bearer ' prefix
         
-        print(f"🔢 FLASK: Note ID: {note_id}")
+        print(f"FLASK: Note ID: {note_id}")
 
         # Get file path from Spring Boot backend
         file_path = get_note_file_path(note_id, jwt_token)
         if not file_path:
             error_msg = f"Could not retrieve file path for note ID: {note_id}"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 404
 
         # Check if file exists
         if not os.path.exists(file_path):
             error_msg = f"File not found: {file_path}"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 404
             
-        print(f"📄 FLASK: Processing file: {file_path}")
+        print(f"FLASK: Processing file: {file_path}")
 
         # Run inference - FIXED to match your actual function
-        print("🤖 FLASK: Starting AI inference...")
+        print("FLASK: Starting AI inference...")
         results = run_pdf_inference(model, processor, file_path)
         
         if not results:
             error_msg = "AI processing returned no results"
-            print(f"❌ FLASK: {error_msg}")
+            print(f"FLASK: {error_msg}")
             return jsonify({"error": error_msg}), 500
 
-        print("✅ FLASK: AI inference completed")
-        print(f"📊 FLASK: Results keys: {list(results.keys())}")
+        print("FLASK: AI inference completed")
+        print(f"FLASK: Results keys: {list(results.keys())}")
 
-        # Extract and validate results - FIXED structure
+        # Extract and validate results
         raw_summary = results.get("summary", "")
         qa_pairs = results.get("qa_pairs", [])
         
         # Clean the summary immediately
         cleaned_summary = clean_text_advanced(raw_summary)
-        print(f"📝 FLASK: Summary cleaned - Original: {len(raw_summary)} chars, Cleaned: {len(cleaned_summary)} chars")
+        print(f"FLASK: Summary cleaned - Original: {len(raw_summary)} chars, Cleaned: {len(cleaned_summary)} chars")
         
-        print(f"❓ FLASK: Found {len(qa_pairs)} QA pairs")
+        print(f"FLASK: Found {len(qa_pairs)} QA pairs")
 
         # Process MCQs with enhanced cleaning
         mcqs = []
@@ -261,7 +261,7 @@ def process_pdf():
                 qa_data = qa_item.get("qa_data", {})
                 
                 if not qa_data:
-                    print(f"⚠️ FLASK: QA pair {i+1} missing qa_data")
+                    print(f"FLASK: QA pair {i+1} missing qa_data")
                     continue
                 
                 raw_question = qa_data.get("question", "")
@@ -270,7 +270,7 @@ def process_pdf():
                 
                 # Validate MCQ data
                 if not raw_question or not raw_correct_answer or not raw_options:
-                    print(f"⚠️ FLASK: QA pair {i+1} incomplete - Question: {bool(raw_question)}, Answer: {bool(raw_correct_answer)}, Options: {bool(raw_options)}")
+                    print(f"FLASK: QA pair {i+1} incomplete - Question: {bool(raw_question)}, Answer: {bool(raw_correct_answer)}, Options: {bool(raw_options)}")
                     continue
                 
                 # Clean all text fields using our enhanced cleaning function
@@ -301,23 +301,23 @@ def process_pdf():
                     valid_mcq = True
                     for opt_key, opt_val in clean_mcq["options"].items():
                         if '\x00' in opt_val or '\u0000' in opt_val:
-                            print(f"⚠️ FLASK: Found null bytes in option {opt_key}, skipping MCQ {i+1}")
+                            print(f"FLASK: Found null bytes in option {opt_key}, skipping MCQ {i+1}")
                             valid_mcq = False
                             break
                     
                     if valid_mcq and '\x00' not in clean_mcq["question"] and '\x00' not in clean_mcq["correct_answer"]:
                         mcqs.append(clean_mcq)
-                        print(f"✅ FLASK: MCQ {i+1} processed and cleaned successfully")
+                        print(f"FLASK: MCQ {i+1} processed and cleaned successfully")
                     else:
-                        print(f"⚠️ FLASK: MCQ {i+1} failed null byte validation")
+                        print(f"FLASK: MCQ {i+1} failed null byte validation")
                 else:
-                    print(f"⚠️ FLASK: MCQ {i+1} failed final validation after cleaning")
+                    print(f"FLASK: MCQ {i+1} failed final validation after cleaning")
                 
             except Exception as e:
-                print(f"❌ FLASK: Error processing MCQ {i+1}: {e}")
+                print(f"FLASK: Error processing MCQ {i+1}: {e}")
                 continue
 
-        print(f"🎯 FLASK: Successfully processed {len(mcqs)} clean MCQs")
+        print(f"FLASK: Successfully processed {len(mcqs)} clean MCQs")
 
         # Prepare response with cleaned data
         response_data = {
@@ -333,33 +333,33 @@ def process_pdf():
         try:
             test_json = json.dumps(response_data, ensure_ascii=False)
             if '\x00' in test_json or '\u0000' in test_json:
-                print("⚠️ FLASK: CRITICAL - Still found null bytes in final response!")
+                print("FLASK: CRITICAL - Still found null bytes in final response!")
                 # Emergency cleaning
                 test_json = test_json.replace('\x00', '').replace('\u0000', '')
                 response_data = json.loads(test_json)
-                print("🔧 FLASK: Emergency cleaning applied")
+                print("FLASK: Emergency cleaning applied")
             else:
-                print("✅ FLASK: Final response validated - no null bytes found")
+                print("FLASK: Final response validated - no null bytes found")
         except Exception as e:
-            print(f"⚠️ FLASK: Error in final JSON validation: {e}")
+            print(f"FLASK: Error in final JSON validation: {e}")
 
-        print(f"📤 FLASK: Sending clean response with {len(mcqs)} MCQs")
+        print(f"FLASK: Sending clean response with {len(mcqs)} MCQs")
         
         # Memory cleanup
         try: 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
             gc.collect()
-            print("🧹 FLASK: Memory cleanup completed")
+            print("FLASK: Memory cleanup completed")
         except Exception as e:
-            print(f"⚠️ FLASK: Memory cleanup failed: {e}")
+            print(f"FLASK: Memory cleanup failed: {e}")
         
         return jsonify(response_data), 200
 
     except Exception as e:
         error_msg = f"Processing failed: {str(e)}"
-        print(f"❌ FLASK: {error_msg}")
-        print("🔍 FLASK: Full traceback:")
+        print(f"FLASK: {error_msg}")
+        print("FLASK: Full traceback:")
         traceback.print_exc()
         return jsonify({"error": error_msg}), 500
 
@@ -386,7 +386,7 @@ def health_check():
         }
     }
     
-    print(f"🏥 FLASK: Health check - {health_data}")
+    print(f"FLASK: Health check - {health_data}")
     return jsonify(health_data), 200
 
 @app.route('/api/test', methods=['POST'])
@@ -396,7 +396,7 @@ def test_endpoint():
     """
     try:
         data = request.get_json()
-        print(f"🧪 FLASK: Test request received: {data}")
+        print(f"FLASK: Test request received: {data}")
         
         # Test a simple MCQ generation if model is loaded
         test_result = None
@@ -421,20 +421,20 @@ def test_endpoint():
         }), 200
         
     except Exception as e:
-        print(f"❌ FLASK: Test failed: {e}")
+        print(f"FLASK: Test failed: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Initialize everything when the app starts
-print("🚀 FLASK: Starting Flask application...")
-print(f"📁 FLASK: Working directory: {os.getcwd()}")
-print(f"🖥️ FLASK: Device: {device}")
-print(f"🌐 FLASK: Spring Boot URL: {SPRING_BOOT_BASE_URL}")
+print("FLASK: Starting Flask application...")
+print(f"FLASK: Working directory: {os.getcwd()}")
+print(f"FLASK: Device: {device}")
+print(f"FLASK: Spring Boot URL: {SPRING_BOOT_BASE_URL}")
 
 if not initialize_model():
-    print("⚠️ FLASK: Model initialization failed, but starting server anyway")
+    print("FLASK: Model initialization failed, but starting server anyway")
 else:
-    print("✅ FLASK: All systems ready!")
+    print("FLASK: All systems ready!")
 
 if __name__ == "__main__":
-    print("🌐 FLASK: Starting server on http://0.0.0.0:5000")
+    print("FLASK: Starting server on http://0.0.0.0:5000")
     app.run(host="0.0.0.0", port=5000, debug=True)
